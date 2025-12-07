@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>경기도 실시간 날씨</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .select-container {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        select {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            background: white;
+            appearance: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #333;
+        }
+
+        select:hover {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .select-container::after {
+            content: '▼';
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #667eea;
+            font-size: 12px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .weather-info {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 20px;
+            display: none;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .weather-info.show {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .current-time {
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .weather-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            padding-bottom: 25px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .temperature {
+            font-size: 64px;
+            font-weight: 700;
+            color: #333;
+            line-height: 1;
+        }
+
+        .temperature-unit {
+            font-size: 32px;
+            color: #666;
+            vertical-align: top;
+        }
+
+        .weather-status {
+            text-align: right;
+        }
+
+        .status-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .status-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .weather-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .detail-item {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+
+        .detail-item:hover {
+            transform: scale(1.05);
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .spinner {
+            border: 4px solid rgba(102, 126, 234, 0.1);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            text-align: center;
+            padding: 20px;
+            color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .temperature {
+                font-size: 48px;
+            }
+
+            .weather-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌤️ 경기도 실시간 날씨</h1>
+        
+        <div class="select-container">
+            <select id="citySelect">
+                <option value="">시를 선택하세요</option>
+                <option value="60,121">수원시</option>
+                <option value="63,124">성남시</option>
+                <option value="57,128">고양시</option>
+                <option value="65,119">용인시</option>
+                <option value="58,125">부천시</option>
+                <option value="59,123">안양시</option>
+                <option value="58,121">안산시</option>
+                <option value="61,130">의정부시</option>
+                <option value="57,114">평택시</option>
+                <option value="57,123">시흥시</option>
+                <option value="59,128">구리시</option>
+                <option value="62,123">광명시</option>
+            </select>
+        </div>
+
+        <button id="getWeatherBtn" onclick="getWeather()">날씨 조회하기</button>
+
+        <div class="weather-info" id="weatherInfo">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                날씨 정보를 불러오는 중...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 경기도 주요 시의 격자 좌표
+        const cityCoordinates = {
+            '수원시': { nx: 60, ny: 121 },
+            '성남시': { nx: 63, ny: 124 },
+            '고양시': { nx: 57, ny: 128 },
+            '용인시': { nx: 65, ny: 119 },
+            '부천시': { nx: 58, ny: 125 },
+            '안양시': { nx: 59, ny: 123 },
+            '안산시': { nx: 58, ny: 121 },
+            '의정부시': { nx: 61, ny: 130 },
+            '평택시': { nx: 57, ny: 114 },
+            '시흥시': { nx: 57, ny: 123 },
+            '구리시': { nx: 59, ny: 128 },
+            '광명시': { nx: 62, ny: 123 }
+        };
+
+        const API_KEY = 'OaRLlfpKOXJH%2BFeghkAojoaSAQbb1bkFF9COvGfjixpiLkEYTHFLqIcBYqFb0HCrcX8H3A47X9QNiRpgcCXAOA%3D%3D';
+        const BASE_URL = 'https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst';
+
+        // 현재 시간 기준으로 base_date와 base_time 계산
+        function getBaseDateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hour = now.getHours();
+            const minute = now.getMinutes();
+
+            // 기상청 API는 0200, 0500, 0800, 1100, 1400, 1700, 2000, 2300에 발표
+            // 현재 시간보다 이전의 가장 최근 발표 시간을 찾음
+            const baseTimes = ['0200', '0500', '0800', '1100', '1400', '1700', '2000', '2300'];
+            let baseTime = '0200';
+            let baseDate = `${year}${month}${day}`;
+
+            const currentTime = hour * 100 + (minute < 30 ? 0 : 30);
+            
+            for (let i = baseTimes.length - 1; i >= 0; i--) {
+                const time = parseInt(baseTimes[i]);
+                if (currentTime >= time) {
+                    baseTime = baseTimes[i];
+                    break;
+                }
+            }
+
+            // 자정 이전 시간이면 전날로
+            if (parseInt(baseTime) < 200 && hour < 2) {
+                const yesterday = new Date(now);
+                yesterday.setDate(yesterday.getDate() - 1);
+                baseDate = `${yesterday.getFullYear()}${String(yesterday.getMonth() + 1).padStart(2, '0')}${String(yesterday.getDate()).padStart(2, '0')}`;
+                baseTime = '2300';
+            }
+
+            return { baseDate, baseTime };
+        }
+
+        // 날씨 상태 아이콘 및 텍스트 변환
+        function getWeatherStatus(sky, pty) {
+            if (pty === '1' || pty === '2' || pty === '4') {
+                return { icon: '🌧️', text: '비' };
+            } else if (pty === '3') {
+                return { icon: '❄️', text: '눈' };
+            } else if (sky === '1') {
+                return { icon: '☀️', text: '맑음' };
+            } else if (sky === '3') {
+                return { icon: '⛅', text: '구름 많음' };
+            } else if (sky === '4') {
+                return { icon: '☁️', text: '흐림' };
+            }
+            return { icon: '🌤️', text: '정보 없음' };
+        }
+
+        // 풍향을 방위로 변환
+        function getWindDirection(angle) {
+            const directions = ['북', '북동', '동', '동남', '남', '남서', '서', '북서'];
+            const index = Math.round(angle / 45) % 8;
+            return directions[index];
+        }
+
+        async function getWeather() {
+            const citySelect = document.getElementById('citySelect');
+            const weatherInfo = document.getElementById('weatherInfo');
+            const getWeatherBtn = document.getElementById('getWeatherBtn');
+
+            if (!citySelect.value) {
+                alert('시를 선택해주세요.');
+                return;
+            }
+
+            const [nx, ny] = citySelect.value.split(',');
+            const { baseDate, baseTime } = getBaseDateTime();
+
+            // UI 업데이트
+            getWeatherBtn.disabled = true;
+            weatherInfo.classList.add('show');
+            weatherInfo.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    날씨 정보를 불러오는 중...
+                </div>
+            `;
+
+            const url = `${BASE_URL}?serviceKey=${API_KEY}&numOfRows=100&pageNo=1&dataType=JSON&base_date=${baseDate}&base_time=${baseTime}&nx=${nx}&ny=${ny}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.response?.header?.resultCode !== '00') {
+                    throw new Error(data.response?.header?.resultMsg || 'API 호출 실패');
+                }
+
+                const items = data.response.body.items.item;
+                if (!items || items.length === 0) {
+                    throw new Error('날씨 정보가 없습니다.');
+                }
+
+                // 현재 시간에 가장 가까운 데이터 추출
+                const now = new Date();
+                const currentHour = String(now.getHours()).padStart(2, '0');
+                const currentMin = String(now.getMinutes()).padStart(2, '0');
+                const currentTime = `${currentHour}${currentMin}`;
+
+                // 카테고리별로 데이터 정리
+                const weatherData = {};
+                items.forEach(item => {
+                    const fcstTime = item.fcstTime;
+                    if (!weatherData[fcstTime]) {
+                        weatherData[fcstTime] = {};
+                    }
+                    weatherData[fcstTime][item.category] = item.fcstValue;
+                });
+
+                // 현재 시간에 가장 가까운 시간 찾기
+                const times = Object.keys(weatherData).sort();
+                let targetTime = times[0];
+                for (const time of times) {
+                    if (time <= currentTime) {
+                        targetTime = time;
+                    } else {
+                        break;
+                    }
+                }
+
+                const current = weatherData[targetTime];
+                if (!current) {
+                    throw new Error('현재 시간의 날씨 정보를 찾을 수 없습니다.');
+                }
+
+                // 날씨 정보 추출
+                const temperature = current.TMP || 'N/A';
+                const humidity = current.REH || 'N/A';
+                const sky = current.SKY || '1';
+                const pty = current.PTY || '0';
+                const windSpeed = current.WSD || '0';
+                const windDirection = current.VEC ? getWindDirection(parseFloat(current.VEC)) : 'N/A';
+                const precipitation = current.PCP || '0';
+
+                const status = getWeatherStatus(sky, pty);
+                const currentDateTime = new Date().toLocaleString('ko-KR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // UI 업데이트
+                weatherInfo.innerHTML = `
+                    <div class="current-time">${currentDateTime}</div>
+                    <div class="weather-main">
+                        <div>
+                            <div class="temperature">
+                                ${temperature}<span class="temperature-unit">℃</span>
+                            </div>
+                        </div>
+                        <div class="weather-status">
+                            <div class="status-icon">${status.icon}</div>
+                            <div class="status-text">${status.text}</div>
+                        </div>
+                    </div>
+                    <div class="weather-details">
+                        <div class="detail-item">
+                            <div class="detail-label">습도</div>
+                            <div class="detail-value">${humidity}%</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">풍속</div>
+                            <div class="detail-value">${windSpeed}m/s</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">풍향</div>
+                            <div class="detail-value">${windDirection}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">강수량</div>
+                            <div class="detail-value">${precipitation === '0' || precipitation === '강수없음' ? '0mm' : precipitation}</div>
+                        </div>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('날씨 정보 조회 실패:', error);
+                weatherInfo.innerHTML = `
+                    <div class="error">
+                        ⚠️ 날씨 정보를 불러오는 데 실패했습니다.<br>
+                        ${error.message}
+                    </div>
+                `;
+            } finally {
+                getWeatherBtn.disabled = false;
+            }
+        }
+
+        // 페이지 로드 시 이벤트 리스너 추가
+        document.addEventListener('DOMContentLoaded', function() {
+            const citySelect = document.getElementById('citySelect');
+            citySelect.addEventListener('change', function() {
+                const weatherInfo = document.getElementById('weatherInfo');
+                weatherInfo.classList.remove('show');
+            });
+        });
+    </script>
+</body>
+</html>
